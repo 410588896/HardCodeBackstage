@@ -4,5 +4,5 @@ from . import views
 
 urlpatterns = [
     url(r'login', views.login, name='login'),
-    url(r'qiniu/token', views.get_qiniu_token, name='get_qiniu_token'),
+    url(r'webConfig', views.get_web_config, name='get_web_config'),
 ]
