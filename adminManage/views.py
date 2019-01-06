@@ -7,15 +7,12 @@ from django.http import HttpResponse
 
 from adminManage import models
 
+from utils import *
+
 import json
-import hashlib
 import time
 import uuid
 
-def cb_passwordEqual(hash_value, salt, password):
-    hash = hashlib.md5()
-    hash.update(password + salt)
-    return hash.hexdigest() == hash_value
 
 def login(request):
     ret = dict()
@@ -80,141 +77,173 @@ def login(request):
         return HttpResponse(json.dumps(ret))
 
 def get_web_config(request):
-	config = models.BlogConfig.objects.values_list('blog_name', 'avatar', 'sign', 'wxpay_qrcode', 'alipay_qrcode', 'github', 'salt')
+    config = models.BlogConfig.objects.values_list('blog_name', 'avatar', 'sign', 'wxpay_qrcode', 'alipay_qrcode', 'github', 'salt')
+    retdata = dict()
+    ret = dict()
+    if len(config) != 0 && config[0][6] != "NULL":
+        retdata['blogName'] = config[0][0]
+        retdata['avatar'] = config[0][1]
+        retdata['sign'] = config[0][2]
+        retdata['wxpayQrcode'] = config[0][3]
+        retdata['alipayQrcode'] = config[0][4]
+        retdata['github'] = config[0][5]
+        retdata['hadOldPassword'] = True
+	ret["status"] = True
+    	ret["code"] = 0
+    	ret["msg"] = '查询成功'
+    	ret['data'] = retdata
+    else:
+        retdata['blogName'] = config[0][0]
+        retdata['avatar'] = config[0][1]
+        retdata['sign'] = config[0][2]
+        retdata['wxpayQrcode'] = config[0][3]
+        retdata['alipayQrcode'] = config[0][4]
+        retdata['github'] = config[0][5]
+        retdata['hadOldPassword'] = False
+    	ret["status"] = True
+    	ret["code"] = 0
+    	ret["msg"] = '查询成功'
+    	ret['data'] = retdata
+    if len(config) == 0:
+    	ret["status"] = False
+    	ret["code"] = -1
+    	ret["msg"] = '查询失败'
+    	ret['data'] = []
+    return HttpResponse(json.dumps(ret))
 	
-    $config = $this->db->from(TABLE_BLOG_CONFIG)
-                            ->select('blog_name as blogName, avatar, sign, wxpay_qrcode as wxpayQrcode,
-                                    alipay_qrcode as alipayQrcode, github, salt')
-                            ->get()
-                            ->row_array();
+def modify(request):
+    ret = dict()
+    config_len = models.BlogConfig.objects.count()
+    #查询到数据库中信息
+    if 0 != config_len:
+        config = models.BlogConfig.objects.all()[:1]
+        parm = request.POST
+        if 'true' == parm.get('settingPassword','not found')
+            #如果有秘钥存在，说明已经有设置过密码了，要对密码进行比较
+            if config.salt != 'NULL':
+                if cb_passwordEqual(config.view_password, config.salt, parm.get('oldPassword','not found')) == False:
+    	            ret["status"] = False
+    	            ret["code"] = -1
+    	            ret["msg"] = '原密码错误'
+    	            ret['data'] = []
+                    return HttpResponse(json.dumps(ret))
+            #加密新密码
+            encrypt = cb_encrypt(parm.get('viewPassword', 'not found'))
+            config.view_password = encrypt['password']
+            config.salt = encrypt['salt']
+
+        config.blog_name = parm.get('blogName', 'not found')
+        config.avatar = parm.get('avatar', 'not found')
+        config.sign = parm.get('sign', 'not found')
+        config.wxpay_qrcode = parm.get('wxpayQrcode', 'not found')
+        config.alipay_qrcode = parm.get('alipayQrcode', 'not found')
+        config.github = parm.get('github', 'not found')
+        save_config = models.BlogConfig.objects.get(id=config.id)
+        save_config = config
+        save_config.save()
+    else:
+        config = dict()
+        if parm.get('settingPassword', 'not found') == 'true':
+            #加密新密码
+            encrypt = cb_encrypt(parm.get('viewPassword', 'not found'))
+            config['view_password'] = encrypt['password']
+            config['salt'] = encrypt['salt']
+        config['blog_name'] = parm.get('blogName', 'not found')
+        config['avatar'] = parm.get('avatar', 'not found')
+        config['sign'] = parm.get('sign', 'not found')
+        config['wxpay_qrcode'] = parm.get('wxpayQrcode', 'not found')
+        config['alipay_qrcode'] = parm.get('alipayQrcode', 'not found')
+        config['github'] = parm.get('github', 'not found')
         
-        if ($config && $config['salt']) {
-            $config['hadOldPassword'] = true;
-        } else {
-            $config['hadOldPassword'] = false;
-        }
-        if (!$config) {
-            $config = false;
-        }
-        unset($config['salt']);
+        models.BlogConfig.objects.create(**config)
         
-       return success($config);
-    }
+    ret["status"] = True
+    ret["code"] = 0
+    ret["msg"] = '更新成功'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
 
-    public function modify($params)
-    {
-        $config = $this->db->from(TABLE_BLOG_CONFIG)
-                            ->get()
-                            ->row_array();
-
-        if ($config) {
-            if ($params['settingPassword'] == 'true') {
-                // 如果有秘钥存在，说明已经有设置过密码了，要对密码进行比较
-                if ($config['salt']) {
-                    if (!cb_passwordEqual($config['view_password'], $config['salt'], $params['oldPassword'])) {
-                        return fail('原密码错误');
-                    }
-                }
-                // 加密新密码
-                $encrypt = cb_encrypt($params['viewPassword']);
-                $config['view_password'] = $encrypt['password'];
-                $config['salt'] = $encrypt['salt'];
-            }
-            $config['blog_name'] = $params['blogName'];
-            $config['avatar'] = $params['avatar'];
-            $config['sign'] = $params['sign'];
-            $config['wxpay_qrcode'] = $params['wxpayQrcode'];
-            $config['alipay_qrcode'] = $params['alipayQrcode'];
-            $config['github'] = $params['github'];
-
-            $this->db->where('id', $config['id'])->update(TABLE_BLOG_CONFIG, $config);
-        } else {
-            $config = array();
-            if ($params['settingPassword'] == 'true') {
-                // 加密新密码
-                $encrypt = cb_encrypt($params['viewPassword']);
-                $config['view_password'] = $encrypt['password'];
-                $config['salt'] = $encrypt['salt'];
-            }
-            $config['blog_name'] = $params['blogName'];
-            $config['avatar'] = $params['avatar'];
-            $config['sign'] = $params['sign'];
-            $config['wxpay_qrcode'] = $params['wxpayQrcode'];
-            $config['alipay_qrcode'] = $params['alipayQrcode'];
-            $config['github'] = $params['github'];
-
-            $this->db->insert(TABLE_BLOG_CONFIG, $config);
-        }
+def get_about_me(request):
+    ret = dict()
+    isEX = models.Pages.objects().filter(type='about').count()
+    if isEX == 0:
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '未找到关于我页面'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
         
-        return success('更新成功');
-    }
+    config = models.Pages.objects().get(type='about')
+    retdata = dict()
+    if config.md == 'null':
+        retdata['md'] = ''
+        retdata['type'] = config.type
+        retdata['html'] = config.html
 
-    public function get_about_me()
-    {
-        $config = $this->db->from(TABLE_PAGES)
-                            ->select('type, md, html')
-                            ->where('type', 'about')
-                            ->get()
-                            ->row_array();
-        if (!$config) {
-            $config = array();
-        }
-        if (!isset($config['md'])) {
-            $config['md'] = '';
-        }
-        if (!isset($config['html'])) {
-            $config['html'] = '';
-        }
+    if config.html == 'null':
+        retdata['html'] = ''
+        retdata['type'] = config.type
+        retdata['md'] = config.md
 
-        return success($config);
-    }
+    ret["status"] = True
+    ret["code"] = 0
+    ret["msg"] = '查询成功'
+    ret['data'] = retdata
+    return HttpResponse(json.dumps(ret))
 
-    public function modify_about($content, $htmlContent)
-    {
-        $config = $this->db->from(TABLE_PAGES)
-                            ->where('type', 'about')
-                            ->get()
-                            ->row_array();
-        if ($config) {
-            $this->db->where('id', $config['id'])->update(TABLE_PAGES, array('md'=> $content, 'html'=> $htmlContent));
-        } else {
-            $this->db->insert(TABLE_PAGES, array('md'=> $content, 'html'=> $htmlContent, 'type'=> 'about'));
-        }
+def modify_about(request):
+    isEX = models.Pages.objects().filter(type='about').count()
+    parm = request.GET
+    if isEX != 0:
+        config = models.Pages.objects().get(type='about')
+        models.Pages.objects.filter(id=config.id).update(**{'md': parm.get('content', 'null'), 'html': parm.get('htmlContent', 'null')})
+    else:
+        models.Pages.objects.create(**{'md': parm.get('content', 'null'), 'html': parm.get('htmlContent', 'null'), 'type': 'about'})
+    ret["status"] = True
+    ret["code"] = 0
+    ret["msg"] = '更新成功'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+
+def get_resume(request):
+    ret = dict()
+    isEX = models.Pages.objects().filter(type='resume').count()
+    if isEX == 0:
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '未找到简历页面'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
         
-        return success('更新成功');
-    }
+    config = models.Pages.objects().get(type='resume')
+    retdata = dict()
+    if config.md == 'null':
+        retdata['md'] = ''
+        retdata['type'] = config.type
+        retdata['html'] = config.html
 
-    public function get_resume()
-    {
-        $config = $this->db->from(TABLE_PAGES)
-                            ->select('type, md, html')
-                            ->where('type', 'resume')
-                            ->get()
-                            ->row_array();
-        if (!$config) {
-            $config = array();
-        }
-        if (!isset($config['md'])) {
-            $config['md'] = '';
-        }
-        if (!isset($config['html'])) {
-            $config['html'] = '';
-        }
+    if config.html == 'null':
+        retdata['html'] = ''
+        retdata['type'] = config.type
+        retdata['md'] = config.md
 
-        return success($config);
-    }
+    ret["status"] = True
+    ret["code"] = 0
+    ret["msg"] = '查询成功'
+    ret['data'] = retdata
+    return HttpResponse(json.dumps(ret))
 
-    public function modify_resume($content, $htmlContent)
-    {
-        $config = $this->db->from(TABLE_PAGES)
-                            ->where('type', 'resume')
-                            ->get()
-                            ->row_array();
-        if ($config) {
-            $this->db->where('id', $config['id'])->update(TABLE_PAGES, array('md'=> $content, 'html'=> $htmlContent));
-        } else {
-            $this->db->insert(TABLE_PAGES, array('md'=> $content, 'html'=> $htmlContent, 'type'=> 'resume'));
-        }
-        
-        return success('更新成功');
-    }
+def modify_resume(request):
+    isEX = models.Pages.objects().filter(type='resume').count()
+    parm = request.GET
+    if isEX != 0:
+        config = models.Pages.objects().get(type='resume')
+        models.Pages.objects.filter(id=config.id).update(**{'md': parm.get('content', 'null'), 'html': parm.get('htmlContent', 'null')})
+    else:
+        models.Pages.objects.create(**{'md': parm.get('content', 'null'), 'html': parm.get('htmlContent', 'null'), 'type': 'about'})
+    ret["status"] = True
+    ret["code"] = 0
+    ret["msg"] = '更新成功'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+
