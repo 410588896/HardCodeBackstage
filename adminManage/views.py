@@ -80,7 +80,7 @@ def get_web_config(request):
     config = models.BlogConfig.objects.values_list('blog_name', 'avatar', 'sign', 'wxpay_qrcode', 'alipay_qrcode', 'github', 'salt')
     retdata = dict()
     ret = dict()
-    if len(config) != 0 && config[0][6] != "NULL":
+    if len(config) != 0 and config[0][6] != "NULL":
         retdata['blogName'] = config[0][0]
         retdata['avatar'] = config[0][1]
         retdata['sign'] = config[0][2]
@@ -118,7 +118,7 @@ def modify(request):
     if 0 != config_len:
         config = models.BlogConfig.objects.all()[:1]
         parm = request.POST
-        if 'true' == parm.get('settingPassword','not found')
+        if 'true' == parm.get('settingPassword','not found'):
             #如果有秘钥存在，说明已经有设置过密码了，要对密码进行比较
             if config.salt != 'NULL':
                 if cb_passwordEqual(config.view_password, config.salt, parm.get('oldPassword','not found')) == False:
