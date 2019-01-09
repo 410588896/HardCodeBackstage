@@ -107,7 +107,7 @@ def get_article_archives(request):
     result = list()
     for item in articleDB:
         category = models.Category.filter(id=item['categoryId']).get('id', 'name')
-        cursor.execute("select tag.id, tag.name from tag, article_tag_mapper where article_tag_mapper.article_id = %s and tag.id = article_tag_mapper.tag_id")
+        cursor.execute("select tag.id, tag.name from tag, article_tag_mapper where article_tag_mapper.article_id = %s and tag.id = article_tag_mapper.tag_id", [item['id']])
         tagret = cursor.fetchall()
         tags_list = list()
         for subitem in tagret:
@@ -143,4 +143,83 @@ def get_article_archives(request):
     return HttpResponse(json.dumps(ret))
     
 def get_article(request):
-    pass
+    ret = dict()
+    parm = request.GET
+    articleId = get_param(parm, 'id')
+    if articleId == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    #检测文章是否存在
+    isEx = models.Article.objects.filter(id=articleId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '文章不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    
+    article = models.Article.objects.get(id=articleId)
+    articleinfo = {
+            'id':article.id,
+            'title':article.title,
+            'cover':article.cover,
+            'subMessage':article.sub_message,
+            'htmlContent':article.html_content,
+            'pageview':article.pageview,
+            'status':article.status,
+            'categoryId':article.category_id,
+            'isEncrypt':article.is_encrypt,
+            'publishTime':article.publish_time,
+            'createTime':article.create_time,
+            'updateTime':article.update_time,
+            'deleteTime':article.delete_time,
+    }
+    articleinfo['pageview'] += 1 
+    models.Article.objects.filter(id=articleId).update(**{'pageview':articleinfo['pageview']})
+    category = models.Category.filter(id=articleinfo['categoryId']).get('id', 'name')
+    cursor = connection.cursor()
+    cursor.execute("select tag.id, tag.name from tag, article_tag_mapper where article_tag_mapper.article_id = %s and tag.id = article_tag_mapper.tag_id", [articleinfo['id']])
+    tagret = cursor.fetchall()
+    tags_list = list()
+    for item in tagret:
+        tags_list.append({'id':item[0], 'name':item[1]})
+
+    result = {'article':articleinfo, 'category':{'id':category.id, 'name':category.name}, 'tags':tags_list}
+
+    config_num = models.BlogConfig.objects.all().count()
+    qrcode = dict()
+    if config_num == 0:
+        qrcode['wxpayQrcode'] = ''
+        qrcode['alipayQrcode'] = ''
+    else:
+        config = models.BlogConfig.objects.get('wxpay_qrcode', 'alipay_qrcode')
+        qrcode['wxpayQrcode'] = config.wxpay_qrcode
+        qrcode['alipayQrcode'] = config.alipay_qrcode
+
+    cursor.execute("select id, title from article where status = '0' and publish_time >= %s and id not in (%s, '-1') order by publish_time asc", [articleinfo[publishTime], articleinfo['id']])
+    pre = dictfetchall(cursor)
+    if len(pre) == 0:
+        pre = None
+    else:
+        pre = pre[0]
+
+    cursor.execute("select id, title from article where status = '0' and publish_time <= %s and id not in (%s, '-1') order by publish_time desc", [articleinfo[publishTime], articleinfo['id']])
+    next = dictfetchall(cursor)
+    if len(next) == 0:
+        next = None
+    else:
+        next = next[0]
+
+    result['qrcode'] = qrcode
+    result['pn'] = {'pre':pre,'next':next}
+
+    ret = dict()
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = result
+    return HttpResponse(json.dumps(ret))
