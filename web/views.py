@@ -102,7 +102,7 @@ def get_article_archives(request):
     pageOpt = get_page(parm)
     count = models.Article.objects.filter(status='0').exclude(id='-1').count()
     cursor = connection.cursor()
-    cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' order by publish_time desc limit %s, %s", (int(pageOpt['page']), int(pageOpt['page'])*pageOpt['pageSize']))
+    cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' order by publish_time desc limit %s, %s", (int(pageOpt['pageSize']), int(pageOpt['page'])*pageOpt['pageSize']))
     articleDB = dictfetchall(cursor)
     result = list()
     for item in articleDB:
@@ -249,7 +249,7 @@ def get_article_list(request):
 
         count = models.Article.objects.filter(status='0',category_id=categoryId).exclude(id='-1').count()
         cursor = connection.cursor()
-        cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' and category_id = '%s' order by publish_time desc limit %s, %s", (categoryId, int(pageOpt['page']), int(pageOpt['page'])*pageOpt['pageSize']))
+        cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' and category_id = '%s' order by publish_time desc limit %s, %s", (categoryId, int(pageOpt['pageSize']), int(pageOpt['page'])*pageOpt['pageSize']))
         articleDB = dictfetchall(cursor)
         result = list()
         for item in articleDB:
@@ -284,9 +284,10 @@ def get_article_list(request):
             ret["msg"] = '不存在该标签'
             ret['data'] = []
             return HttpResponse(json.dumps(ret))
-        count = models.Article.objects.filter(status='0',category_id=categoryId).exclude(id='-1').count()
         cursor = connection.cursor()
-        cursor.execute("select article.id as id,title,cover,sub_message as subMessage,pageview,article.status as status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article,article_tag_mapper where article.status='0' and article.id!='-1' and article_tag_mapper.tag_id = '%s' order by article.publish_time desc limit %s, %s", (tagId, int(pageOpt['page']), int(pageOpt['page'])*pageOpt['pageSize']))
+        cursor.execute("select count(*) from article,article_tag_mapper where article.status='0' and article.id!='-1' and article_tag_mapper.tag_id = %s", (tagId))
+        count = cursor.fetchone()[0] 
+        cursor.execute("select article.id as id,title,cover,sub_message as subMessage,pageview,article.status as status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article,article_tag_mapper where article.status='0' and article.id!='-1' and article_tag_mapper.tag_id = %s order by article.publish_time desc limit %s, %s", (tagId, int(pageOpt['pageSize']), int(pageOpt['page'])*pageOpt['pageSize']))
         articleDB = dictfetchall(cursor)
         result = list()
         for item in articleDB:
@@ -310,7 +311,7 @@ def get_article_list(request):
     else:
         count = models.Article.objects.filter(status='0').exclude(id='-1').count()
         cursor = connection.cursor()
-        cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' order by publish_time desc limit %s, %s", (int(pageOpt['page']), int(pageOpt['page'])*pageOpt['pageSize']))
+        cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' order by publish_time desc limit %s, %s", (int(pageOpt['pageSize']), int(pageOpt['page'])*pageOpt['pageSize']))
         articleDB = dictfetchall(cursor)
         result = list()
         for item in articleDB:
@@ -332,3 +333,44 @@ def get_article_list(request):
         ret['data'] = retdata
         return HttpResponse(json.dumps(ret))
 
+def search(request):
+    ret = dict()
+    parm = request.GET
+
+    searchValue = get_param(parm, 'searchValue')
+    pageOpt = get_page(parm)
+
+    if searchValue == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '搜索内容不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    count = models.Article.objects.filter(status='0').exclude(id='-1').count()
+    cursor = connection.cursor()
+    sql = "select count(*) from article where status='0' and id!='-1' and (title like '%%%s%%' or sub_message like '%%%s%%')" % (searchValue, searchValue)
+    cursor.execute(sql)
+    count = cursor.fetchone()[0] 
+    sql = "select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' and (title like '%%%s%%' or sub_message like '%%%s%%') order by publish_time desc limit %s, %s" % (searchValue, searchValue, int(pageOpt['pageSize']), int(pageOpt['page'])*pageOpt['pageSize'])
+    cursor.execute(sql)
+    articleDB = dictfetchall(cursor)
+    result = list()
+    for item in articleDB:
+        category = models.Category.filter(id=item['categoryId']).get('id', 'name')
+        cursor.execute("select tag.id, tag.name from tag, article_tag_mapper where article_tag_mapper.article_id = %s and tag.id = article_tag_mapper.tag_id", [item['id']])
+        tagret = cursor.fetchall()
+        tags_list = list()
+        for subitem in tagret:
+            tags_list.append({'id':subitem[0], 'name':subitem[1]})
+        result.append({'article':item, 'category':{'id':category.id, 'name':category.name}, 'tags':tags_list})
+    retdata = dict()
+    retdata['page'] = pageOpt['page']
+    retdata['pageSize'] = pageOpt['pageSize'] 
+    retdata['count'] = count
+    retdata['list'] = result
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = retdata
+    return HttpResponse(json.dumps(ret))
