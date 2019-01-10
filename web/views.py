@@ -223,3 +223,112 @@ def get_article(request):
     ret["msg"] = 'success'
     ret['data'] = result
     return HttpResponse(json.dumps(ret))
+
+def get_article_list(request):
+    ret = dict()
+    parm = request.GET
+    by = get_param(parm, 'by')
+    categoryId = get_param(parm, 'categoryId')
+    tagId = get_param(parm, 'tagId')
+    pageOpt = get_page(parm)
+
+    if by == 'category':
+        if categoryId == '':
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '分类id不能为空'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        isEx = models.Category.objects.filter(id=categoryId).count()
+        if isEx == 0:
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '不存在该分类'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+
+        count = models.Article.objects.filter(status='0',category_id=categoryId).exclude(id='-1').count()
+        cursor = connection.cursor()
+        cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' and category_id = '%s' order by publish_time desc limit %s, %s", (categoryId, int(pageOpt['page']), int(pageOpt['page'])*pageOpt['pageSize']))
+        articleDB = dictfetchall(cursor)
+        result = list()
+        for item in articleDB:
+            category = models.Category.filter(id=item['categoryId']).get('id', 'name')
+            cursor.execute("select tag.id, tag.name from tag, article_tag_mapper where article_tag_mapper.article_id = %s and tag.id = article_tag_mapper.tag_id", [item['id']])
+            tagret = cursor.fetchall()
+            tags_list = list()
+            for subitem in tagret:
+                tags_list.append({'id':subitem[0], 'name':subitem[1]})
+            result.append({'article':item, 'category':{'id':category.id, 'name':category.name}, 'tags':tags_list})
+        retdata = dict()
+        retdata['page'] = pageOpt['page']
+        retdata['pageSize'] = pageOpt['pageSize'] 
+        retdata['count'] = count
+        retdata['list'] = result
+        ret["status"] = True
+        ret["code"] = 200
+        ret["msg"] = 'success'
+        ret['data'] = retdata
+        return HttpResponse(json.dumps(ret))
+    elif by == 'tag':
+        if tagId == '':
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '标签id不能为空'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        isEx = models.Tag.objects.filter(id=tagId).count()
+        if isEx == 0:
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '不存在该标签'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        count = models.Article.objects.filter(status='0',category_id=categoryId).exclude(id='-1').count()
+        cursor = connection.cursor()
+        cursor.execute("select article.id as id,title,cover,sub_message as subMessage,pageview,article.status as status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article,article_tag_mapper where article.status='0' and article.id!='-1' and article_tag_mapper.tag_id = '%s' order by article.publish_time desc limit %s, %s", (tagId, int(pageOpt['page']), int(pageOpt['page'])*pageOpt['pageSize']))
+        articleDB = dictfetchall(cursor)
+        result = list()
+        for item in articleDB:
+            category = models.Category.filter(id=item['categoryId']).get('id', 'name')
+            cursor.execute("select tag.id, tag.name from tag, article_tag_mapper where article_tag_mapper.article_id = %s and tag.id = article_tag_mapper.tag_id", [item['id']])
+            tagret = cursor.fetchall()
+            tags_list = list()
+            for subitem in tagret:
+                tags_list.append({'id':subitem[0], 'name':subitem[1]})
+            result.append({'article':item, 'category':{'id':category.id, 'name':category.name}, 'tags':tags_list})
+        retdata = dict()
+        retdata['page'] = pageOpt['page']
+        retdata['pageSize'] = pageOpt['pageSize'] 
+        retdata['count'] = count
+        retdata['list'] = result
+        ret["status"] = True
+        ret["code"] = 200
+        ret["msg"] = 'success'
+        ret['data'] = retdata
+        return HttpResponse(json.dumps(ret))
+    else:
+        count = models.Article.objects.filter(status='0').exclude(id='-1').count()
+        cursor = connection.cursor()
+        cursor.execute("select id,title,cover,sub_message as subMessage,pageview,status,category_id as categoryId,is_encrypt as isEncrypt,publish_time as publishTime,create_time as createTime,update_time as updateTime,delete_time as deleteTime from article where status='0' and id!='-1' order by publish_time desc limit %s, %s", (int(pageOpt['page']), int(pageOpt['page'])*pageOpt['pageSize']))
+        articleDB = dictfetchall(cursor)
+        result = list()
+        for item in articleDB:
+            category = models.Category.filter(id=item['categoryId']).get('id', 'name')
+            cursor.execute("select tag.id, tag.name from tag, article_tag_mapper where article_tag_mapper.article_id = %s and tag.id = article_tag_mapper.tag_id", [item['id']])
+            tagret = cursor.fetchall()
+            tags_list = list()
+            for subitem in tagret:
+                tags_list.append({'id':subitem[0], 'name':subitem[1]})
+            result.append({'article':item, 'category':{'id':category.id, 'name':category.name}, 'tags':tags_list})
+        retdata = dict()
+        retdata['page'] = pageOpt['page']
+        retdata['pageSize'] = pageOpt['pageSize'] 
+        retdata['count'] = count
+        retdata['list'] = result
+        ret["status"] = True
+        ret["code"] = 200
+        ret["msg"] = 'success'
+        ret['data'] = retdata
+        return HttpResponse(json.dumps(ret))
+
