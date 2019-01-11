@@ -10,4 +10,6 @@ urlpatterns = [
     url(r'article/list', views.get_article_list, name='get_article_list'),
     url(r'article/search', views.search, name='search'),
     url(r'article', views.get_article, name='get_article'),
+    url(r'category/list', views.get_category_list, name='get_category_list'),
+    url(r'tag/list', views.get_tag_list, name='get_tag_list'),
 ]

@@ -374,3 +374,29 @@ def search(request):
     ret["msg"] = 'success'
     ret['data'] = retdata
     return HttpResponse(json.dumps(ret))
+
+def get_category_list(request):
+    ret = dict()
+    count_all = models.Category.objects.filter(article_count__gt=0).count()
+    cursor = connection.cursor()
+    sql = "select id as categoryId, name as categoryName, create_time as createTime, update_time as updateTime,status, article_count as articleCount from category where article_count > 0 order by aid desc"
+    cursor.execute(sql)
+    categoryList = dictfetchall(cursor)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = {'count':count_all, 'list':categoryList}
+    return HttpResponse(json.dumps(ret))
+
+def get_tag_list(request):
+    ret = dict()
+    count_all = models.Tag.objects.filter(article_count__gt=0).count()
+    cursor = connection.cursor()
+    sql = "select id as tagId, name as tagName, create_time as createTime, update_time as updateTime,status, article_count as articleCount from tag where article_count > 0 order by aid desc"
+    cursor.execute(sql)
+    tagList = dictfetchall(cursor)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = {'count':count_all, 'list':tagList}
+    return HttpResponse(json.dumps(ret))
