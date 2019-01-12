@@ -12,4 +12,7 @@ urlpatterns = [
     url(r'article', views.get_article, name='get_article'),
     url(r'category/list', views.get_category_list, name='get_category_list'),
     url(r'tag/list', views.get_tag_list, name='get_tag_list'),
+    url(r'friends/list', views.get_friends_list, name='get_friends_list'),
+    url(r'comments/list', views.get_comments, name='get_comments'),
+    url(r'comments/add', views.add, name='add'),
 ]

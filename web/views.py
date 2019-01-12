@@ -400,3 +400,128 @@ def get_tag_list(request):
     ret["msg"] = 'success'
     ret['data'] = {'count':count_all, 'list':tagList}
     return HttpResponse(json.dumps(ret))
+
+def get_friends_list(request):
+    cursor = connection.cursor()
+    sql = "select id, name, count from friends_type where count > 0 order by id desc"
+    cursor.execute(sql)
+    typeList = dictfetchall(cursor)
+    result = list()
+    for item in typeList:
+        sql = "select friend_id as friendId, name, url, create_time as createTime, update_time as updateTime, delete_time as deleteTime, status from friends where type_id = '%s'" % item['id']
+        cursor.execute(sql)
+        friendsList = dictfetchall(cursor)
+        item['list'] = friendsList
+        result.append(item)
+    ret = dict()
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = result
+    return HttpResponse(json.dumps(ret))
+        
+def get_comments(request):
+    ret = dict()
+    parm = request.GET
+    articleId = get_param(parm, 'articleId')
+
+    #检测文章是否存在
+    isEx = models.Article.objects.filter(id=articleId).count()
+    if isEx == 0:
+        ret["status"] = True
+        ret["code"] = -1
+        ret["msg"] = '文章不存在'
+        ret['data'] = result
+        return HttpResponse(json.dumps(ret))
+
+    cursor = connection.cursor()
+    sql = "select id, parent_id as parentId, article_id as articleId, reply_id as replyId, name, content, create_time as createTime, is_author as isAuthor from comments where status = '0' and article_id = '%s' and parent_id = '0' order by create_time desc" % articleId
+    cursor.execute(sql)
+    commentsList = dictfetchall(cursor)
+    result = list()
+    for item in commentsList:
+        sql = "select id, parent_id as parentId, article_id as articleId, reply_id as replyId, name, content, create_time as createTime, is_author as isAuthor from comments where status = '0' and article_id = '%s' and parent_id = '%s' order by create_time asc" % (articleId, item["id"])
+        cursor.execute(sql)
+        childrenList = dictfetchall(cursor)
+        item['children'] = childrenList
+        result.append(item)
+
+    count_all = models.Comments.objects.filter(article_id=articleId).count()
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = {'count':count_all, 'list':result}
+    return HttpResponse(json.dumps(ret))
+
+def add():
+    ret = dict()
+    parm = request.POST
+    data = {
+            'name':'',
+            'email':'',
+            'content':'',
+            'sourceContent':'',
+            'articleId':'',
+            'replyId':'',
+    }
+    for key in data:
+        data[key] = get_param(parm, key)
+
+    if data['name'] == '':
+        ret["status"] = True
+        ret["code"] = -1
+        ret["msg"] = '昵称不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['content'] == '':
+        ret["status"] = True
+        ret["code"] = -1
+        ret["msg"] = '评论内容不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    #检测文章是否存在
+    isEx = models.Article.objects.filter(id=data['articleId']).count()
+    if isEx == 0:
+        ret["status"] = True
+        ret["code"] = -1
+        ret["msg"] = '文章不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    if data['replyId'] == 0:
+        data['parentId'] = 0
+    else:
+        #检测回复的评论是否存在
+        isEx = models.Comments.filter(id=data['replyId']).count()
+        if isEx == 0:
+            ret["status"] = True
+            ret["code"] = -1
+            ret["msg"] = '评论不存在'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+
+        comments = models.Comments.get(id=data['replyId'])
+        if comments.article_id != data['articleId']:
+            ret["status"] = True
+            ret["code"] = -1
+            ret["msg"] = '文章与评论不匹配'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        if comments.article_id == '0':
+            data['parentId'] = comments.id
+        else:
+            data['parentId'] = comments.parent_id
+
+    data['create_time'] = int(time.time())
+    models.Comments.objects.create(data)
+
+    message = '来自 ' + data['name'] + ' 的' + '留言' if data['articleId'] == '-1' else '评论'
+    #$this->sendQqEmail->sendMsg('249900679@qq.com', $message, $data['sourceContent']);
+
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = "留言" if data['articleId'] == '-1' else '评论' + '成功'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+
