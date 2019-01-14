@@ -11,4 +11,5 @@ urlpatterns = [
     url(r'webConfig/modifyAbout', views.modify_about, name='modify_about'),
     url(r'webConfig/getResume', views.get_resume, name='get_resume'),
     url(r'webConfig/modifyResume', views.modify_resume, name='modify_resume'),
+    url(r'friends/typeList', views.get_friends_type, name='get_friends_type'),
 ]

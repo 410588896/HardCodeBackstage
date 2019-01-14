@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from adminManage import models
+
 import hashlib
+import re
+import time
 from random import Random
 
 def cb_passwordEqual(hash_value, salt, password):
@@ -30,3 +34,47 @@ def cb_encrypt(password):
             'password': password,
             'salt': salt,
         }
+
+def check_token(request):
+    accessToken = request.META.get('accessToken', '')
+    #检查token是否存在并且是否有效
+    num = models.Admin.objects.filter(access_token=accessToken).count()
+    if num == 0:
+        return False
+    userInfo = models.Admin.objects.get(access_token=accessToken)
+    if userInfo.token_expires_in < int(time.time()):
+        return False
+
+    #查得到数据并且token在效期内
+    return True
+
+def get_ip(request):
+    ip = ''
+    if request.META.get('HTTP_CLIENT_IP', 'unknow') != 'unknow':
+        ip = request.META.get('HTTP_CLIENT_IP', 'unknow')
+    elif request.META.get('HTTP_X_FORWARDED_FOR', 'unknow') != 'unknow':
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', 'unknow')
+    elif request.META.get('REMOTE_ADDR', 'unknow') != 'unknow':
+        ip = request.META.get('REMOTE_ADDR', 'unknow')
+    elif request.POST.get('REMOTE_ADDR', 'unknow') != 'unknow':
+        ip = request.POST.get('REMOTE_ADDR', 'unknow')
+    elif request.GET.get('REMOTE_ADDR', 'unknow') != 'unknow':
+        ip = request.GET.get('REMOTE_ADDR', 'unknow')
+
+    ip = re.match('/[\d\.]{7,15}/', ip)
+    if ip is None:
+        ip = ''
+    return ip
+
+def save_sys_log(message, request):
+    data = {
+        'time': int(time.time()),
+        'content': message,
+        'ip': get_ip(request),
+    }
+    models.SysLog.objects.create(data)
+
+def dictfetchall(cursor): 
+    '''Returns all rows from a cursor as a dict'''
+    desc = cursor.description 
+    return [dict(zip([col[0] for col in desc], row)) for row in cursor.fetchall()] 

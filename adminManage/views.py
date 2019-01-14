@@ -5,6 +5,8 @@ from django.shortcuts import render
 
 from django.http import HttpResponse
 
+from django.db import connection
+
 from adminManage import models
 
 from utils import *
@@ -77,9 +79,14 @@ def login(request):
         return HttpResponse(json.dumps(ret))
 
 def get_web_config(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
     config = models.BlogConfig.objects.values_list('blog_name', 'avatar', 'sign', 'wxpay_qrcode', 'alipay_qrcode', 'github', 'salt')
     retdata = dict()
-    ret = dict()
     if len(config) != 0 and config[0][6] != "NULL":
         retdata['blogName'] = config[0][0]
         retdata['avatar'] = config[0][1]
@@ -113,6 +120,11 @@ def get_web_config(request):
 	
 def modify(request):
     ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
     config_len = models.BlogConfig.objects.count()
     #查询到数据库中信息
     if 0 != config_len:
@@ -165,6 +177,11 @@ def modify(request):
 
 def get_about_me(request):
     ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
     isEX = models.Pages.objects().filter(type='about').count()
     if isEX == 0:
         ret["status"] = True
@@ -192,6 +209,12 @@ def get_about_me(request):
     return HttpResponse(json.dumps(ret))
 
 def modify_about(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
     isEX = models.Pages.objects().filter(type='about').count()
     parm = request.GET
     if isEX != 0:
@@ -207,6 +230,11 @@ def modify_about(request):
 
 def get_resume(request):
     ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
     isEX = models.Pages.objects().filter(type='resume').count()
     if isEX == 0:
         ret["status"] = True
@@ -234,6 +262,12 @@ def get_resume(request):
     return HttpResponse(json.dumps(ret))
 
 def modify_resume(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
     isEX = models.Pages.objects().filter(type='resume').count()
     parm = request.GET
     if isEX != 0:
@@ -245,5 +279,21 @@ def modify_resume(request):
     ret["code"] = 0
     ret["msg"] = '更新成功'
     ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+
+def get_friends_type(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
+    cursor = connection.cursor()
+    cursor.execute("select name,count from friends_type order by id desc")
+    typeList = dictfetchall(cursor)
+    ret["status"] = True
+    ret["code"] = 0
+    ret["msg"] = 'success'
+    ret['data'] = typeList
     return HttpResponse(json.dumps(ret))
 
