@@ -297,3 +297,27 @@ def get_friends_type(request):
     ret['data'] = typeList
     return HttpResponse(json.dumps(ret))
 
+def get_friends_list(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
+    parm = request.GET
+    pageOpt = get_page(parm)
+    cursor = connection.cursor()
+    cursor.execute("select friend_id as friendId, friends.name, url, create_time as createTime, update_time as updateTime,delete_time as deleteTime, friends.status as status, friends_type.name as typeName, type_id as typeId from friends join friends_type on friends.type_id = friends_type.id")
+    friendsList = dictfetchall(cursor)
+    retdata = {
+        'page': pageOpt['page'],
+        'pageSize': pageOpt['pageSize'],
+        'count': len(friendsList),
+        'list': friendsList,
+    }
+    ret["status"] = True
+    ret["code"] = 0
+    ret["msg"] = 'success'
+    ret['data'] = retdata
+    return HttpResponse(json.dumps(ret))
+
