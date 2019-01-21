@@ -85,6 +85,7 @@ def get_web_config(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     config = models.BlogConfig.objects.values_list('blog_name', 'avatar', 'sign', 'wxpay_qrcode', 'alipay_qrcode', 'github', 'salt')
     retdata = dict()
     if len(config) != 0 and config[0][6] != "NULL":
@@ -125,6 +126,7 @@ def modify(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     config_len = models.BlogConfig.objects.count()
     #查询到数据库中信息
     if 0 != config_len:
@@ -182,6 +184,7 @@ def get_about_me(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='about').count()
     if isEX == 0:
         ret["status"] = True
@@ -215,6 +218,7 @@ def modify_about(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='about').count()
     parm = request.GET
     if isEX != 0:
@@ -235,6 +239,7 @@ def get_resume(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='resume').count()
     if isEX == 0:
         ret["status"] = True
@@ -268,6 +273,7 @@ def modify_resume(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='resume').count()
     parm = request.GET
     if isEX != 0:
@@ -288,6 +294,7 @@ def get_friends_type(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     cursor = connection.cursor()
     cursor.execute("select name,count from friends_type order by id desc")
     typeList = dictfetchall(cursor)
@@ -304,6 +311,7 @@ def get_friends_list(request):
     	ret["code"] = -4001
     	ret["msg"] = '无效的token'
     	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     parm = request.GET
     pageOpt = get_page(parm)
     cursor = connection.cursor()
@@ -321,3 +329,74 @@ def get_friends_list(request):
     ret['data'] = retdata
     return HttpResponse(json.dumps(ret))
 
+def add_friend(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    data = {
+        'name': '',
+        'url': '',
+        'typeId': '',
+        'typeName': '',
+    }
+
+    for item in data:
+        data[item] = get_param(parm, item) 
+    if data['name'] == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = '名称不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['url'] == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = '链接不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['typeId'] == '' and data['typeName'] == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = '类型不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+   
+    if data['typeId'] == '': 
+        #如果类型id为空，说明是新增的类型，先添加进类型表
+        isEx = models.FriendsType.objects.filter(name=data['typeName']).count()
+        id = ''
+        if isEx != 0:
+            #如果已经存在这个类型名，就直接返回id
+            typedata = models.FriendsType.objects.get(name=data['typeName'])
+            id = typedata.id
+        else:
+            typeinfo = {
+                'name': data['typeName'],
+                'count': 1,
+            }
+            models.FriendsType.objects.create(typeinfo)
+            typedata = models.FriendsType.objects.get(name=data['typeName'])
+            id = typedata.id
+        data['typeId'] = id
+
+    friend = {
+        'friend_id': str(uuid.uuid1()),
+        'name': data['name'],
+        'url': data['url'],
+        'type_id': data['typeId'],
+        'create_time': int(time.time()),
+    }
+    typeinfo = models.FriendsType.objects.get(id=data['typeId'])
+    typeCount = typeinfo.count + 1
+
+    models.FriendsType.objects.filter(id=data['typeId']).update(count=typeCount)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = '添加成功'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
