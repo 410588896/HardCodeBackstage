@@ -400,3 +400,95 @@ def add_friend(request):
     ret["msg"] = '添加成功'
     ret['data'] = []
     return HttpResponse(json.dumps(ret))
+
+def modify_friend(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    data = {
+        'friendId': '',
+        'name': '',
+        'url': '',
+        'typeId': '',
+        'typeName': '',
+    }
+    for item in data:
+        data[item] = get_param(parm, item) 
+    if data['friendId'] == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = 'id不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['name'] == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = '名称不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['url'] == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = '链接不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['typeId'] == '' and data['typeName'] == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = '类型不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Friends.filter(friend_id=data['friendId']).count()
+    if isEx == 0:
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = 'id不存在'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['typeId'] == '':
+        #如果类型id为空，说明是新增的类型，先添加进类型表
+        isEx = models.FriendsType.objects.filter(name=data['typeName']).count()
+        id = ''
+        if isEx != 0:
+            #如果已经存在这个类型名，就直接返回id
+            typedata = models.FriendsType.objects.get(name=data['typeName'])
+            id = typedata.id
+        else:
+            typeinfo = {
+                'name': data['typeName'],
+                'count': 1,
+            }
+            models.FriendsType.objects.create(typeinfo)
+            typedata = models.FriendsType.objects.get(name=data['typeName'])
+            id = typedata.id
+        data['typeId'] = id
+
+    friend = {
+        'name': data['name'],
+        'url': data['url'],
+        'type_id': data['typeId'],
+        'update_time': int(time.time()),
+    }
+    cursor = connection.cursor()
+    sql = "select friends_type.count as count,friends_type.id as id from friends,friends_type where friends.friend_id = '%s' and friends.type_id = friends_type.id" % (data['friendId'])
+    cursor.execute(sql)
+    oldType = dictfetchall(cursor)
+    oldCount = oldType[0]['count'] - 1
+
+    newType = models.FriendsType.objects.get(id=data['typeId'])
+    newCount = newType['count'] + 1
+
+    models.FriendsType.objects.filter(id=oldType[0]['id']).update(count=oldCount)
+    models.FriendsType.objects.filter(id=data['typeId']).update(count=newCount)
+    models.Friends.objects.filter(friend_id=data['friendId']).update(friend)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = '更新成功'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+

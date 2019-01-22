@@ -13,5 +13,6 @@ urlpatterns = [
     url(r'webConfig/modifyResume', views.modify_resume, name='modify_resume'),
     url(r'friends/typeList', views.get_friends_type, name='get_friends_type'),
     url(r'friends/list', views.get_friends_list, name='get_friends_list'),
-    url(r'friends/add', views.get_friends_list, name='get_friends_list'),
+    url(r'friends/add', views.add_friend, name='add_friend'),
+    url(r'friends/modify', views.modify_friend, name='modify_friend'),
 ]
