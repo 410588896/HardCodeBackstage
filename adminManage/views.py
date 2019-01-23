@@ -492,3 +492,42 @@ def modify_friend(request):
     ret['data'] = []
     return HttpResponse(json.dumps(ret))
 
+def del_friend(request):
+    ret = dict()
+    if check_token(request) == False:
+	ret["status"] = False
+    	ret["code"] = -4001
+    	ret["msg"] = '无效的token'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    friendId = get_param(parm, 'friendId')
+    if friendId == '':
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = 'id不能为空'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Friends.filter(friend_id=friendId).count()
+    if isEx == 0:
+	ret["status"] = False
+    	ret["code"] = -4002
+    	ret["msg"] = 'id不存在'
+    	ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    cursor = connection.cursor()
+    sql = "select friends_type.count as count,friends_type.id as id from friends,friends_type where friends.friend_id = '%s' and friends.type_id = friends_type.id" % (friendId)
+    cursor.execute(sql)
+    oldType = dictfetchall(cursor)
+    oldCount = oldType[0]['count'] - 1
+
+    models.FriendsType.objects.filter(id=oldType[0]['id']).update(count=oldCount)
+    models.Friends.objects.filter(friend_id=friendId).delete()
+
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = '删除成功'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+
