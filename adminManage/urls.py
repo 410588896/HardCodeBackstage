@@ -16,4 +16,5 @@ urlpatterns = [
     url(r'friends/add', views.add_friend, name='add_friend'),
     url(r'friends/modify', views.modify_friend, name='modify_friend'),
     url(r'friends/delete', views.del_friend, name='del_friend'),
+    url(r'category/add', views.add_category, name='add_category'),
 ]

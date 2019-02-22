@@ -495,25 +495,25 @@ def modify_friend(request):
 def del_friend(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     parm = request.POST
     friendId = get_param(parm, 'friendId')
     if friendId == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = 'id不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     isEx = models.Friends.filter(friend_id=friendId).count()
     if isEx == 0:
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = 'id不存在'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不存在'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
 
     cursor = connection.cursor()
@@ -529,5 +529,50 @@ def del_friend(request):
     ret["code"] = 200
     ret["msg"] = '删除成功'
     ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+
+def add_category(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    categoryName = get_param(parm, 'categoryName');
+
+    if categoryName == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '分类名称不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    isEx = models.Category.objects.filter(name=categoryName).count()
+
+    if isEx != 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该分类已经存在，请勿重复添加'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    canDel = get_param(parm, 'canDel')
+
+    canDel = 1 if canDel == '' else 0
+
+    id = str(uuid.uuid1())
+    category = {
+        'id': id,
+        'name': categoryName,
+        'create_time': int(time.time()),
+        'can_del': canDel,
+    }
+    models.Category.objects.create(**category)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = '更新成功'
+    ret['data'] = id
     return HttpResponse(json.dumps(ret))
 
