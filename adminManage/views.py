@@ -540,7 +540,7 @@ def add_category(request):
         ret['data'] = []
         return HttpResponse(json.dumps(ret))
     parm = request.POST
-    categoryName = get_param(parm, 'categoryName');
+    categoryName = get_param(parm, 'categoryName')
 
     if categoryName == '':
         ret["status"] = False
@@ -574,5 +574,58 @@ def add_category(request):
     ret["code"] = 200
     ret["msg"] = '更新成功'
     ret['data'] = id
+    return HttpResponse(json.dumps(ret))
+
+def modify_category(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    categoryId = get_param(parm, 'categoryId')
+    categoryName = get_param(parm, 'categoryName')
+    
+    if categoryId == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '分类id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if categoryName == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '分类名称不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    isEx = models.Category.objects.filter(id=categoryId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该分类不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    category = models.Category.objects.get(id=categoryId)
+    if category.can_del == '0':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '默认分类不可修改'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    category = {
+        'name' : categoryName,
+        'update_time' : int(time.time()),
+    }
+
+    models.Category.objects.filter(id=categoryId).update(**category)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = '更新成功'
+    ret['data'] = []
     return HttpResponse(json.dumps(ret))
 
