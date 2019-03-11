@@ -8,6 +8,13 @@ import re
 import time
 from random import Random
 
+def is_p_number(num):
+    try:
+        z=int(num)
+        return isinstance(z,int)
+    except ValueError:
+        return False
+
 def cb_passwordEqual(hash_value, salt, password):
     hash = hashlib.md5()
     hash.update(password + salt)
