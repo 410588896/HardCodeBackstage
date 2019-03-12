@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 def is_p_number(num):
     try:
         z=int(num)
-        return isinstance(num,int)
+        return isinstance(z,int)
     except ValueError:
         return False
 
