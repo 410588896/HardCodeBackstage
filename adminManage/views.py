@@ -629,3 +629,129 @@ def modify_category(request):
     ret['data'] = []
     return HttpResponse(json.dumps(ret))
 
+def del_category(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    categoryId = get_param(parm, 'categoryId')
+    if categoryId == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    isEx = models.Category.objects.filter(id=categoryId)
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该分类不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    category = models.Category.objects.get(id=categoryId)
+    if category.can_del == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '默认分类不可删除'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    models.Category.objects.filter(id=categoryId).delete()
+
+    # 将该分类下的文章移到默认分类中
+
+    defaultCategory = models.Category.objects.filter(can_del=0)
+    updatetime = int(time.time())
+    if len(defaultCategory) != 0:
+        # 获取原分类的文章数量
+        count = models.Article.objects.filter(category_id=categoryId).count();
+
+        update = {
+            'article_count' : int(defaultCategory.article_count) + int(count),
+            'update_time' : updatetime,
+        }
+        models.Category.objects.filter(id=defaultCategory.id).update(**update)
+
+        models.Article.objects.filter(category_id=categoryId).update(TABLE_ARTICLE, **{'category_id' : defaultCategory.id,'update_time' : updatetime})
+        ret["status"] = True
+        ret["code"] = 200
+        ret["msg"] = '删除成功'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    else:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '无默认分类'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    
+def get_category_list(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    pageOpt = get_page(parm)
+    all = get_param(parm, 'all')
+
+    count_all = models.Category.objects.filter().count()
+    if all == 'true':
+        pageOpt['pageSize'] = count_all
+
+    cursor = connection.cursor()
+    cursor.execute("select id as categoryId, name as categoryName, create_time as createTime, update_time as updateTime, status, article_count as articleCount, can_del as canDel from category limit %d,%d order by aid desc") % (int(pageOpt['pageSize']), int(pageOpt['page']) * int(pageOpt['pageSize']))
+    categoryList = dictfetchall(cursor)    
+    result = { 
+        'page' : pageOpt['page'],
+        'pageSize' : pageOpt['pageSize'],
+        'count' : count_all,
+        'list' : categoryList,
+    }
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = result
+    return HttpResponse(json.dumps(ret))
+
+def get_category(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    categoryId = get_param(parm, 'categoryId')
+    if categoryId == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    isEx = models.Category.objects.filter(id=categoryId)
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该分类不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    cursor = connection.cursor()
+    cursor.execute("select id, name, article_count as articleCount from category")
+    categoryList = dictfetchall(cursor)    
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = categoryList
+    return HttpResponse(json.dumps(ret))
