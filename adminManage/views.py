@@ -755,3 +755,42 @@ def get_category(request):
     ret["msg"] = 'success'
     ret['data'] = categoryList
     return HttpResponse(json.dumps(ret))
+
+def add_tag(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    tagName = get_param(parm, 'tagName')
+    if tagName == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '标签名称不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    isEx = models.Tag.objects.filter(name=tagName).count()
+    if isEx != 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该标签已经存在，请勿重复添加'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+
+    tagId = str(uuid.uuid1())
+    tag = {
+        'id' : tagId,
+        'name' : tagName,
+        'create_time' : int(time.time()),
+    }
+    models.Tag.objects.create(**tag)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = tagId
+    return HttpResponse(json.dumps(ret))
+
