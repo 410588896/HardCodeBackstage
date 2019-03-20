@@ -794,3 +794,44 @@ def add_tag(request):
     ret['data'] = tagId
     return HttpResponse(json.dumps(ret))
 
+def modify_tag(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    tagName = get_param(parm, 'tagName')
+    tagId = get_param(parm, 'tagId')
+    if tagName == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '标签名称不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if tagId == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '标签id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Tag.objects.filter(id=tagId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该标签不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    tag={
+        'name' : tagName,
+        'update_time' : int(time.time()),
+    }
+    models.Tag.objects.filter(id=tagId).update(**tag)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+

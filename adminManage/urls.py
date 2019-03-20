@@ -22,4 +22,5 @@ urlpatterns = [
     url(r'category/list', views.get_category_list, name='get_category_list'),
     url(r'category', views.get_category, name='get_category'),
     url(r'tag/add', views.add_tag, name='add_tag'),
+    url(r'tag/modify', views.modify_tag, name='modify_tag'),
 ]
