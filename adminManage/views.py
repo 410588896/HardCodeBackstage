@@ -835,3 +835,36 @@ def modify_tag(request):
     ret['data'] = []
     return HttpResponse(json.dumps(ret))
 
+def del_tag(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    tagId = get_param(parm, 'tagId')
+    if tagId == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Tag.objects.filter(id=tagId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该标签不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    # 同时删除所有该 标签-文章 的映射
+    models.ArticleTagMapper.objects.filter(tag_id=tagId).delete()
+    # 删除标签
+    models.Tag.objects.filter(id=tagId).delete()
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = []
+    return HttpResponse(json.dumps(ret))
+
