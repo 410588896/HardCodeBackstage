@@ -24,4 +24,5 @@ urlpatterns = [
     url(r'tag/add', views.add_tag, name='add_tag'),
     url(r'tag/modify', views.modify_tag, name='modify_tag'),
     url(r'tag/delete', views.del_tag, name='del_tag'),
+    url(r'tag/list', views.get_tag_list, name='get_tag_list'),
 ]

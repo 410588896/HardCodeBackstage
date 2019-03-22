@@ -868,3 +868,33 @@ def del_tag(request):
     ret['data'] = []
     return HttpResponse(json.dumps(ret))
 
+def get_tag_list(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    pageOpt = get_page(parm)
+    all = get_param(parm, 'all')
+    count_all = models.Tag.objects.filter().count()
+    if all == 'true':
+        pageOpt['pageSize'] = count_all
+    cursor = connection.cursor()
+    cursor.execute("select id as tagId, name as tagName, create_time as createTime, update_time as updateTime, status, article_count as articleCount from tag limit %d,%d order by aid desc") % (int(pageOpt['pageSize']), int(pageOpt['page']) * int(pageOpt['pageSize']))
+    tagList = dictfetchall(cursor)    
+    result = { 
+        'page' : pageOpt['page'],
+        'pageSize' : pageOpt['pageSize'],
+        'count' : count_all,
+        'list' : tagList,
+    }
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = result
+    return HttpResponse(json.dumps(ret))
+    
+
