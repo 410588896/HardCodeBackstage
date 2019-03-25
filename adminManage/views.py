@@ -748,7 +748,7 @@ def get_category(request):
         return HttpResponse(json.dumps(ret))
 
     cursor = connection.cursor()
-    cursor.execute("select id, name, article_count as articleCount from category")
+    cursor.execute("select id, name, article_count as articleCount from category where id = '%s'") % (categoryId)
     categoryList = dictfetchall(cursor)    
     ret["status"] = True
     ret["code"] = 200
@@ -897,4 +897,35 @@ def get_tag_list(request):
     ret['data'] = result
     return HttpResponse(json.dumps(ret))
     
+def get_tag(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    tagId = get_param(parm, 'tagId')
+    if tagId == '':
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Tag.objects.filter(id=tagId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '该标签不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    cursor = connection.cursor()
+    cursor.execute("select id, name, article_count as articleCount from tag where id = '%s'") % (tagId)
+    tagList = dictfetchall(cursor)    
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = tagList
+    return HttpResponse(json.dumps(ret))
 
