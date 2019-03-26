@@ -929,3 +929,58 @@ def get_tag(request):
     ret['data'] = tagList
     return HttpResponse(json.dumps(ret))
 
+def save(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    article = {
+        'id' : '',
+        'content' : '',
+        'htmlContent' : '',
+        'title' : '',
+        'cover' : '',
+        'subMessage' : '',
+        'isEncrypt' : '',
+    }
+    for item in article:
+        article[item] = get_param(parm, item)
+    number = is_p_number(article['isEncrypt'])
+    if number == False:
+        article['isEncrypt'] = 0
+    else:
+        article['isEncrypt'] = int(article['isEncrypt'])
+        if article['isEncrypt'] != 0 and article['isEncrypt'] != 1:
+            article['isEncrypt'] = 0 
+    if article['id'] == '':
+        article['id'] = str(uuid.uuid1())
+        article['create_time'] = int(time.time())
+        article['update_time'] = int(time.time())
+        article['status'] = 2
+        models.Article.objects.create(**article)
+    else:
+        isEx = models.Article.objects.filter(id=article['id']).count()
+        if isEx == 0:
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '文章不存在'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        article['update_time'] = int(time.time())
+        cur = models.Article.objects.get(id=article['id'])
+        if cur.status == 1:
+            article['status'] = 2
+        models.Article.objects.filter(id=article['id']).update(**article)
+    userInfo = models.Admin.objects.get(access_token=request.META.get('accessToken', ''))
+    save_sys_log('管理员' + userInfo.username + '保存了文章(' + article['id'] + ')')
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = article['id']
+    return HttpResponse(json.dumps(ret))
+    
+
