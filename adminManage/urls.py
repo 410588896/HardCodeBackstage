@@ -27,4 +27,5 @@ urlpatterns = [
     url(r'tag/list', views.get_tag_list, name='get_tag_list'),
     url(r'tag/get', views.get_tag, name='get_tag'),
     url(r'article/save', views.save, name='save'),
+    url(r'article/publish', views.publish, name='publish'),
 ]
