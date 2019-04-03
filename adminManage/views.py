@@ -1169,7 +1169,204 @@ def publish(request):
     ret['data'] = articleId
     return HttpResponse(json.dumps(ret))
     
-        
-        
+def modify(request):        
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    article = {
+        'id' : '',
+        'content' : '',
+        'htmlContent' : '',
+        'title' : '',
+        'cover' : '',
+        'subMessage' : '',
+        'isEncrypt' : '',
+        'category' : '',
+        'tags' : '',
+    }
+    for item in article:
+        article[item] = get_param(parm, item)
+    if article['id'] == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+    if article['title'] == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '标题不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if article['content'] == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '文章内容不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if article['subMessage'] == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '文章简介不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    number = is_p_number(article['isEncrypt'])
+    if number == False:
+        article['isEncrypt'] = 0
+    else:
+        article['isEncrypt'] = int(article['isEncrypt'])
+        if article['isEncrypt'] != 0 and article['isEncrypt'] != 1:
+            article['isEncrypt'] = 0 
+    isEx = models.Article.objects.filter(id=article['id']).count() 
+    if isEx != 0:
+        tmp = models.Article.objects.filter(id=article['id'])
+        if tmp[0].status != 0:
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '文章不可调用该编辑借口'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+    else:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '文章不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    # 保存分类
+    finalcid = ''
+    cid = get_param(article['category'], 'id')
+    cname = get_param(article['category'], 'name')
+    if cid != '':
+        isEx = models.Category.objects.filter(id=cid).count()
+        if isEx != 0:
+            finalcid = cid
+    elif cname != '':
+        isEx = models.Category.objects.filter(name=cname).count()
+        if isEx != 0:
+            finalcid = models.Category.objects.filter(name=cname)[0].id
+        else:
+            category = {
+                'id' : str(uuid.uuid1()),
+                'name' : cname,
+                'create_time' : int(time.time()),
+                'can_del' : 1,
+            }
+            models.Category.objects.create(**category)
+            finalcid = category['id']
+    else:
+        finalcid = models.Category.objects.filter(can_del=0)[0].id
+    carticle = {
+        'category_id' : cid,
+        'update_time' : int(time.time()),
+    }
+
+    a = models.Article.objects.filter(id=articleId)
 
 
+    # 如果文章分类改变，则要将原分类的文章数量-1
+    if (a[0].category_id != cid):
+        c = models.Category.objects.filter(id=a[0].category_id)
+
+        update = {
+            'article_count' : int(c[0].article_count) - 1,
+            'update_time' : int(time.time()),
+        }
+        models.Category.objects.filter(id=a[0].category_id).update(**update)
+
+        category = models.Category.objects.filter(id=finalcid)
+    
+        update = { 
+            'article_count' : int(category[0].article_count) + 1,
+            'update_time' : int(time.time()),
+        }
+
+        models.Category.objects.filter(id=finalcid).update(**update)
+
+    # 保存标签（添加新的，并删除旧的） 
+    tagList = models.ArticleTagMapper.objects.filter(article_id=article['id']) 
+    oldTags = list()
+    for item in tagList:
+        oldTags.append(item) 
+    tags = list()
+    if article['tags'] != '':
+        tmp = json.loads(article['tags'])
+        for item in tmp:
+            tid = item['id']
+            tname = item['name']
+            if tid != '':
+                isEx = models.Category.objects.filter(id=tid).count()
+                if isEx != 0:
+                    if tid not in tags:
+                        tags.append(tid)
+                    continue
+            if tname != '':
+                isEx = models.Category.objects.filter(name=tname).count()
+                tid = ''
+                if isEx == 0:
+                    tid = str(uuid.uuid1())
+                    tagtmp = {
+                        'id' : tid,
+                        'name' : tname,
+                        'create_time' : int(time.time()),
+                    }
+                    models.Category.objects.create(**tagtmp)
+                else:
+                    tid = models.Category.objects.filter(name=tname)[0].id
+                if tid not in tags:
+                    tags.append(tid)
+
+    for item in tags:
+        if item in oldTags:
+            oldTags.remove(item)
+        else:
+            isEx = models.Article.objects.filter(id=article['id']).count()
+            if isEx == 0:
+                continue
+            isEx = models.Tag.objects.filter(id=item).count()
+            if isEx == 0:
+                continue
+            conditions = {
+                'article_id' : article['id'],
+                'tag_id' : item,
+            }
+            isEx = models.ArticleTagMapper.filter(**conditions).count()
+            if isEx != 0:
+                continue
+            mapper = {
+                'article_id' : article['id'],
+                'tag_id' : item,
+                'create_time' : int(time.time()),
+            } 
+            tagupdate = {
+                'article_count' : int(models.Tag.objects.filter(id=item)[0].article_count) + 1,
+                'update_time' : int(time.time()),
+            }
+            models.Tag.objects.filter(id=item).update(**tagupdate)
+            models.ArticleTagMapper.objects.create(**mapper)
+    for item in oldTags:
+        tag = models.Tag.objects.filter(id=item)
+        update = {
+            'article_count' : int(tag[0].article_count) - 1,
+            'update_time' : int(time.time()),
+        }
+        models.Tag.objects.filter(id=item).update(**update)
+        conditions = {
+            'tag_id' : item,
+            'article_id' : article['id'],
+        }
+        models.ArticleTagMapper.filter(**conditions).delete()
+    article['update_time'] = int(time.time()) 
+    a = models.Article.objects.filter(id=article['id'])
+    if a[0].status == '1':
+        article['status'] = 2
+    models.Article.objects.filter(id=article['id']).update(**article)
+    save_sys_log('管理员' + userInfo.username + '编辑了文章(' + article['id'] + ')')
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = article['id']
+    return HttpResponse(json.dumps(ret))
