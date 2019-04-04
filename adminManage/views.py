@@ -1196,6 +1196,7 @@ def modify(request):
         ret["code"] = -1
         ret["msg"] = 'id不能为空'
         ret['data'] = []
+        return HttpResponse(json.dumps(ret))
     if article['title'] == '':
         ret["status"] = False
         ret["code"] = -1
@@ -1369,4 +1370,67 @@ def modify(request):
     ret["code"] = 200
     ret["msg"] = 'success'
     ret['data'] = article['id']
+    return HttpResponse(json.dumps(ret))
+
+def delete(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    articleId = get_param(parm, 'id')
+    if articleId == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Article.objects.filter(id=articleId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '文章不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    tagList = models.ArticleTagMapper.objects.filter(article_id=articleId).count()
+    if len(tagList) > 0:
+        t = int(time.time())
+        for item in tagList:
+            tag = models.Tag.objects.filter(id=item.tag_id)
+            update = {
+                'article_count' : int(tag[0].article_count) - 1,
+                'update_time' : t,
+            }
+            models.Tag.objects.filter(id=tag[0].id).update(**update)
+        models.ArticleTagMapper.objects.filter(article_id=articleId).delete()
+    articletmp = models.Article.objects.filter(id=articleId)
+    t = int(time.time())
+    if articletmp[0].status == '1':
+        models.Article.objects.filter(id=articleId).delete()
+    else:
+        data = {
+            'category_id' : '',
+            'status' : '2',
+            'delete_time' : t,
+            'update_time' : t,
+        }
+        if articletmp[0].status == '2':
+            data['status'] = '1'
+        models.Article.objects.filter(id=articleId).update(**data)
+    if articletmp[0].status == '0':
+        c = models.Category.objects.filter(id=articletmp[0].category_id)
+        update = {
+            'article_count' : int(c[0].article_count) - 1,
+            'update_time' : t,
+        }
+        models.Category.objects.filter(id=articletmp[0].category_id).update(**update)
+    models.Comments.objects.filter(article_id=articleId).delete()
+    save_sys_log('管理员' + userInfo.username + '删除了文章(' + article['id'] + ')')
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = '已删除'
+    ret['data'] = [] 
     return HttpResponse(json.dumps(ret))

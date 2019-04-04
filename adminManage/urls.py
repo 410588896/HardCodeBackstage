@@ -29,4 +29,5 @@ urlpatterns = [
     url(r'article/save', views.save, name='save'),
     url(r'article/publish', views.publish, name='publish'),
     url(r'article/modify', views.modify, name='modify'),
+    url(r'article/delete', views.delete, name='delete'),
 ]
