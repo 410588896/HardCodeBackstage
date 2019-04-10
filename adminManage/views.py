@@ -1434,3 +1434,43 @@ def delete(request):
     ret["msg"] = '已删除'
     ret['data'] = [] 
     return HttpResponse(json.dumps(ret))
+
+def get_article(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    articleId = get_param(parm, 'id')
+    if articleId == '':
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Article.objects.filter(id=articleId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '文章不存在'
+        ret['data'] = []
+    cursor = connection.cursor()
+    cursor.execute("select id, title, cover, sub_message as subMessage, content, html_content as htmlContent, pageview, status, category_id as categoryId, is_encrypt as isEncrypt, publish_time as publishTime, create_time as createTime, update_time as updateTime, delete_time as deleteTime from article where id = '%s'" % articleId)
+    article = dictfetchall(cursor)
+    cursor.execute("select id, name from category where id = '%s'" % article[0]["categoryId"])
+    category = dictfetchall(cursor)
+    cursor.execute("select tag.id, tag.name from article_tag_mapper,tag where article_tag_mapper.article_id = '%s' and tag.id = article_tag_mapper.tag_id" % articleId)
+    tags = dictfetchall(cursor)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = {
+        "article" : article,
+        "category" : category,
+        "tags" : tags,
+    }
+    return HttpResponse(json.dumps(ret))
+    

@@ -30,4 +30,5 @@ urlpatterns = [
     url(r'article/publish', views.publish, name='publish'),
     url(r'article/modify', views.modify, name='modify'),
     url(r'article/delete', views.delete, name='delete'),
+    url(r'article/info', views.get_article, name='get_article'),
 ]
