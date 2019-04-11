@@ -1474,3 +1474,85 @@ def get_article(request):
     }
     return HttpResponse(json.dumps(ret))
     
+def get_article_list(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    by = get_param(parm, 'by')
+    status = get_param(parm, 'status')
+    categoryId = get_param(parm, 'categoryId')
+    tagId = get_param(parm, 'tagId')
+    pageOpt = get_page(parm)
+    result = dict()
+    if by == 'category':
+        if categoryId == '':
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '分类id不能为空'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        isEx = models.Category.objects.filter(id=categoryId).count()
+        if isEx == 0:
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '不存在该分类'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        cursor = connection.cursor()
+        cursor.execute("select article.id as id, title, cover, pageview, article.status as status, is_encrypt as isEncrypt, category.name as categoryName,article.create_time as createTime, article.update_time as updateTime, article.publish_time as publishTime, article.delete_time as deleteTime from article,category where article.category_id = '%s' and article.id != '-1' and category.id = article.category_id order by article.update_time desc" % categoryId)
+        articleDB = dictfetchall(cursor)
+        result = {
+            "page" : pageOpt['page'],
+            "pageSize" : pageOpt['pageSize'],
+            "count" : len(articleDB),
+            "list" : articleDB[pageOpt['pageSize']:pageOpt['page']*pageOpt['pageSize']], 
+        }
+    elif by == 'tag':
+        if tagId == '':
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '标签id不能为空'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        isEx = models.Tag.objects.filter(id=tagId).count()
+        if isEx == 0:
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '不存在该标签'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        cursor = connection.cursor()
+        cursor.execute("select article.id as id, title, cover, pageview, article.status as status, is_encrypt as isEncrypt, category.name as categoryName,article.create_time as createTime, article.update_time as updateTime, article.publish_time as publishTime, article.delete_time as deleteTime from article,category,article_tag_mapper where article.category_id = category.id and article_tag_mapper.article_id = article.id and article.id != '-1' and article_tag_mapper.tag_id = '%s' order by article.update_time desc" % tagId)
+        articleDB = dictfetchall(cursor)
+        result = {
+            "page" : pageOpt['page'],
+            "pageSize" : pageOpt['pageSize'],
+            "count" : len(articleDB),
+            "list" : articleDB[pageOpt['pageSize']:pageOpt['page']*pageOpt['pageSize']], 
+        }
+    else:
+        if status != '0' and status != '-1' and status != '-2':
+            status = False
+        cursor = connection.cursor()
+        if status == False:
+            cursor.execute("select article.id as id, title, cover, pageview, article.status as status, is_encrypt as isEncrypt, category.name as categoryName,article.create_time as createTime, article.update_time as updateTime, article.publish_time as publishTime, article.delete_time as deleteTime from article,category,article_tag_mapper where article.id != '-1' and category.id = article.category_id order by article.update_time desc")
+        else:
+            cursor.execute("select article.id as id, title, cover, pageview, article.status as status, is_encrypt as isEncrypt, category.name as categoryName,article.create_time as createTime, article.update_time as updateTime, article.publish_time as publishTime, article.delete_time as deleteTime from article,category,article_tag_mapper where article.id != '-1' and category.id = article.category_id and article.status = '%s' order by article.update_time desc" % status)
+        articleDB = dictfetchall(cursor)
+        result = {
+            "page" : pageOpt['page'],
+            "pageSize" : pageOpt['pageSize'],
+            "count" : len(articleDB),
+            "list" : articleDB[pageOpt['pageSize']:pageOpt['page']*pageOpt['pageSize']], 
+        }
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = result
+    return HttpResponse(json.dumps(ret))
+
