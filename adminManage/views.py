@@ -1556,3 +1556,26 @@ def get_article_list(request):
     ret['data'] = result
     return HttpResponse(json.dumps(ret))
 
+def get_sys_log(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    pageOpt = get_page(parm)
+    logDB = models.SysLog.objects.filter().order_by('-time') 
+    
+    data = {
+        "page" : pageOpt['page'],
+        "pageSize" : pageOpt['pageSize'] * pageOpt['page'],
+        "count" : len(logDB),
+        "list" : logDB[pageOpt['pageSize']:(pageOpt['pageSize'] + pageOpt['pageSize'] * pageOpt['page'])],
+    }
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = data
+    return HttpResponse(json.dumps(ret))
