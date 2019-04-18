@@ -1579,3 +1579,31 @@ def get_sys_log(request):
     ret["msg"] = 'success'
     ret['data'] = data
     return HttpResponse(json.dumps(ret))
+
+def get_home_statistics(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    publishCount = models.Article.objects.filter(status=0).exclude(id="-1").count()
+    draftsCount = models.Article.objects.filter(status=2).exclude(id="-1").count()
+    deletedCount = models.Article.objects.filter(status=1).exclude(id="-1").count()
+    categoryCount = models.Category.objects.filter().count()
+    tagCount = models.Tag.objects.filter().count()
+    commentsCount = models.Comments.objects.filter().count()
+    result = {
+        "publishCount" : publishCount,
+        "draftsCount" : draftsCount,
+        "deletedCount" : deletedCount,
+        "categoryCount" : categoryCount,
+        "tagCount" : tagCount,
+        "commentsCount" : commentsCount,
+    }
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = result
+    return HttpResponse(json.dumps(ret))
