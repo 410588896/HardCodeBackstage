@@ -1607,3 +1607,40 @@ def get_home_statistics(request):
     ret["msg"] = 'success'
     ret['data'] = result
     return HttpResponse(json.dumps(ret))
+
+def get_comments(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    articleId = get_param(parm, 'articleId')
+    isEx = models.Article.objects.filter(id=articleId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '不存在该文章'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    cursor = connection.cursor()
+    cursor.execute("select id, parent_id as parentId, article_id as articleId, reply_id as replyId, name, content, create_time as createTime, is_author as isAuthor from comments where status = '0' and article_id = %s and parent_id = '0' order by create_time desc" % articleId)
+    list = dictfetchall(cursor)
+    lists = list()
+    for item in list:
+        children = cursor.execute("select id, parent_id as parentId, article_id as articleId, reply_id as replyId, name, content, create_time as createTime, is_author as isAuthor from comments where status = '0' and article_id = %s and parent_id = %s order by create_time desc" % (articleId, item["id"]))
+        item['children'] = children
+        lists.append(item)
+    count = models.Comments.objects.filter().count()
+    result = {
+        "count" : count,
+        "list" : lists,
+    }
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = result
+    return HttpResponse(json.dumps(ret))
+

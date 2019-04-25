@@ -34,4 +34,5 @@ urlpatterns = [
     url(r'article/list', views.get_article_list, name='get_article_list'),
     url(r'sys/log', views.get_sys_log, name='get_sys_log'),
     url(r'statistics/home', views.get_home_statistics, name='get_home_statistics'),
+    url(r'comments/list', views.get_comments, name='get_comments'),
 ]
