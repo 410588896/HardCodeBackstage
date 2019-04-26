@@ -1644,3 +1644,73 @@ def get_comments(request):
     ret['data'] = result
     return HttpResponse(json.dumps(ret))
 
+def add(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    data = {
+        "content" : '',
+        "articleId" : '',
+        "replyId" : '',
+        "sourceContent" : '',
+    }
+    for key in data:
+        data[key] = get_param(parm, key)
+    if data["content"] == ''
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '评论内容不能为空'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    isEx = models.Article.objects.filter(id=data["articleId"]).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = 'false'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    if data['replyId'] == 0:
+        data['parentId'] = 0
+    else:
+        is = models.Comments.objects.filter(id=data['replyId']).count()
+        if is == 0:
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '评论不存在'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        comments = models.Comments.objects.filter(id=data['replyId'])
+        if comments[0].article_id != data['articleId']
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '文章与评论不匹配'
+            ret['data'] = []
+            return HttpResponse(json.dumps(ret))
+        if commemts[0].parent_id == '0':
+            data['parentId'] = comments[0].id
+        else:
+            data['parentId'] = comments[0].parent_id
+    
+    userInfo = models.Admin.objects.get(access_token=request.META.get('accessToken', ''))
+    comment = {
+        "name" : userInfo.username, 
+        "content" : data["content"],
+        "source_content" : data["sourceContent"],
+        "create_time" : int(time.time()),
+        "article_id" : data["articleId"],
+        "reply_id" : data["replyId"],
+        "parent_id" : data["parentId"],
+        "is_author" : 1,
+    }
+    models.Comments.objects.create(**comment)
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = "留言成功" if data[articleId] == '-1' else "评论成功"
+    return HttpResponse(json.dumps(ret))
+    
