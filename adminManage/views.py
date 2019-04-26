@@ -7,6 +7,8 @@ from django.http import HttpResponse
 
 from django.db import connection
 
+from django.db.models import Q
+
 from adminManage import models
 
 from utils import *
@@ -1644,7 +1646,7 @@ def get_comments(request):
     ret['data'] = result
     return HttpResponse(json.dumps(ret))
 
-def add(request):
+def comments_add(request):
     ret = dict()
     if check_token(request) == False:
         ret["status"] = False
@@ -1661,7 +1663,7 @@ def add(request):
     }
     for key in data:
         data[key] = get_param(parm, key)
-    if data["content"] == ''
+    if data["content"] == '':
         ret["status"] = False
         ret["code"] = -1
         ret["msg"] = '评论内容不能为空'
@@ -1677,15 +1679,15 @@ def add(request):
     if data['replyId'] == 0:
         data['parentId'] = 0
     else:
-        is = models.Comments.objects.filter(id=data['replyId']).count()
-        if is == 0:
+        isex = models.Comments.objects.filter(id=data['replyId']).count()
+        if isex == 0:
             ret["status"] = False
             ret["code"] = -1
             ret["msg"] = '评论不存在'
             ret['data'] = []
             return HttpResponse(json.dumps(ret))
         comments = models.Comments.objects.filter(id=data['replyId'])
-        if comments[0].article_id != data['articleId']
+        if comments[0].article_id != data['articleId']:
             ret["status"] = False
             ret["code"] = -1
             ret["msg"] = '文章与评论不匹配'
@@ -1714,3 +1716,52 @@ def add(request):
     ret['data'] = "留言成功" if data[articleId] == '-1' else "评论成功"
     return HttpResponse(json.dumps(ret))
     
+def comments_delete(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.POST
+    commentsId = get_param(parm, 'commentsId')
+    isEx = models.Comments.objects.filter(id=commentsId).count()
+    if isEx == 0:
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '评论不存在'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    models.Comments.objects.filter(Q(id=commentsId)|Q(parent_id=commentsId)|Q(reply_id=commentsId)).delete() 
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = "已删除"
+    return HttpResponse(json.dumps(ret))
+
+def get_all_comments(request):
+    ret = dict()
+    if check_token(request) == False:
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
+        return HttpResponse(json.dumps(ret))
+    parm = request.GET
+    pageOpt = get_page(parm)
+    cursor = connection.cursor()
+    cursor.execute("select comments.id as id, parent_id as parentId, article_id as articleId, reply_id as replyId, name, comments.content as content, comments.create_time as createTime, is_author as isAuthor, article.title as articleTitle, comments.status as status from comments,article where article.id = comments.article_id order by comments.create_time desc")
+    result = dictfetchall(cursor)
+    data = {
+        "page" : pageOpt['page'],
+        "pageSize" : pageOpt['pageSize'],
+        "count" : len(result),
+        "list" : result[pageOpt['pageSize'] : (pageOpt['page'] * pageOpt['pageSize'])],
+    }
+    ret["status"] = True
+    ret["code"] = 200
+    ret["msg"] = 'success'
+    ret['data'] = data
+    return HttpResponse(json.dumps(ret))
+

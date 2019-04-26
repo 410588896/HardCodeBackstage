@@ -35,5 +35,7 @@ urlpatterns = [
     url(r'sys/log', views.get_sys_log, name='get_sys_log'),
     url(r'statistics/home', views.get_home_statistics, name='get_home_statistics'),
     url(r'comments/list', views.get_comments, name='get_comments'),
-    url(r'comments/add', views.add, name='add'),
+    url(r'comments/add', views.comments_add, name='comments_add'),
+    url(r'comments/delete', views.comments_delete, name='comments_delete'),
+    url(r'comments/alllist', views.get_all_comments, name='get_all_comments'),
 ]
