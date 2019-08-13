@@ -26,25 +26,25 @@ def login(request):
         username_value = parm.get('username','not found')
         isEx = models.Admin.objects.filter(username=username_value).count()
         if isEx == 0:
-    	    ret["status"] = False
-    	    ret["code"] = -1
-    	    ret["msg"] = '该账号不存在'
-    	    ret['data'] = []
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '该账号不存在'
+            ret['data'] = []
             return HttpResponse(json.dumps(ret))
         #查询账号信息
         userinfo = models.Admin.objects.get(username=username_value)
         if ord(userinfo.status) != 0:
-    	    ret["status"] = False
-    	    ret["code"] = -1
-    	    ret["msg"] = '账号异常'
-    	    ret['data'] = []
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '账号异常'
+            ret['data'] = []
             return HttpResponse(json.dumps(ret))
         #比对密码
         if cb_passwordEqual(userinfo.password, userinfo.salt, parm.get('password','not found')) == False:
-    	    ret["status"] = False
-    	    ret["code"] = -1
-    	    ret["msg"] = '密码错误'
-    	    ret['data'] = []
+            ret["status"] = False
+            ret["code"] = -1
+            ret["msg"] = '密码错误'
+            ret['data'] = []
             return HttpResponse(json.dumps(ret))
         #更新登陆时间
         cur_time = int(time.time())
@@ -68,25 +68,25 @@ def login(request):
                          "exp": 60 * 60 * 24 * 7, 
             },
         }
-    	ret["status"] = True
-    	ret["code"] = 0
-    	ret["msg"] = '登陆成功'
-    	ret['data'] = retdata
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '登陆成功'
+        ret['data'] = retdata
         return HttpResponse(json.dumps(ret))
     else:
-    	ret["status"] = False
-    	ret["code"] = -1
-    	ret["msg"] = '该账号不存在'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '该账号不存在'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
 
 def get_web_config(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     config = models.BlogConfig.objects.values_list('blog_name', 'avatar', 'sign', 'wxpay_qrcode', 'alipay_qrcode', 'github', 'salt')
     retdata = dict()
@@ -98,10 +98,10 @@ def get_web_config(request):
         retdata['alipayQrcode'] = config[0][4]
         retdata['github'] = config[0][5]
         retdata['hadOldPassword'] = True
-	ret["status"] = True
-    	ret["code"] = 0
-    	ret["msg"] = '查询成功'
-    	ret['data'] = retdata
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '查询成功'
+        ret['data'] = retdata
     else:
         retdata['blogName'] = config[0][0]
         retdata['avatar'] = config[0][1]
@@ -110,24 +110,24 @@ def get_web_config(request):
         retdata['alipayQrcode'] = config[0][4]
         retdata['github'] = config[0][5]
         retdata['hadOldPassword'] = False
-    	ret["status"] = True
-    	ret["code"] = 0
-    	ret["msg"] = '查询成功'
-    	ret['data'] = retdata
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '查询成功'
+        ret['data'] = retdata
     if len(config) == 0:
-    	ret["status"] = False
-    	ret["code"] = -1
-    	ret["msg"] = '查询失败'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -1
+        ret["msg"] = '查询失败'
+        ret['data'] = []
     return HttpResponse(json.dumps(ret))
-	
+    
 def modify(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     config_len = models.BlogConfig.objects.count()
     #查询到数据库中信息
@@ -138,10 +138,10 @@ def modify(request):
             #如果有秘钥存在，说明已经有设置过密码了，要对密码进行比较
             if config.salt != 'NULL':
                 if cb_passwordEqual(config.view_password, config.salt, parm.get('oldPassword','not found')) == False:
-    	            ret["status"] = False
-    	            ret["code"] = -1
-    	            ret["msg"] = '原密码错误'
-    	            ret['data'] = []
+                    ret["status"] = False
+                    ret["code"] = -1
+                    ret["msg"] = '原密码错误'
+                    ret['data'] = []
                     return HttpResponse(json.dumps(ret))
             #加密新密码
             encrypt = cb_encrypt(parm.get('viewPassword', 'not found'))
@@ -182,10 +182,10 @@ def modify(request):
 def get_about_me(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='about').count()
     if isEX == 0:
@@ -216,10 +216,10 @@ def get_about_me(request):
 def modify_about(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='about').count()
     parm = request.GET
@@ -237,10 +237,10 @@ def modify_about(request):
 def get_resume(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='resume').count()
     if isEX == 0:
@@ -271,10 +271,10 @@ def get_resume(request):
 def modify_resume(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     isEX = models.Pages.objects().filter(type='resume').count()
     parm = request.GET
@@ -292,10 +292,10 @@ def modify_resume(request):
 def get_friends_type(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     cursor = connection.cursor()
     cursor.execute("select name,count from friends_type order by id desc")
@@ -309,10 +309,10 @@ def get_friends_type(request):
 def get_friends_list(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     parm = request.GET
     pageOpt = get_page(parm)
@@ -334,10 +334,10 @@ def get_friends_list(request):
 def add_friend(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     parm = request.POST
     data = {
@@ -350,22 +350,22 @@ def add_friend(request):
     for item in data:
         data[item] = get_param(parm, item) 
     if data['name'] == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = '名称不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '名称不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     if data['url'] == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = '链接不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '链接不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     if data['typeId'] == '' and data['typeName'] == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = '类型不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '类型不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
    
     if data['typeId'] == '': 
@@ -406,10 +406,10 @@ def add_friend(request):
 def modify_friend(request):
     ret = dict()
     if check_token(request) == False:
-	ret["status"] = False
-    	ret["code"] = -4001
-    	ret["msg"] = '无效的token'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4001
+        ret["msg"] = '无效的token'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     parm = request.POST
     data = {
@@ -422,35 +422,35 @@ def modify_friend(request):
     for item in data:
         data[item] = get_param(parm, item) 
     if data['friendId'] == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = 'id不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     if data['name'] == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = '名称不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '名称不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     if data['url'] == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = '链接不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '链接不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     if data['typeId'] == '' and data['typeName'] == '':
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = '类型不能为空'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = '类型不能为空'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     isEx = models.Friends.filter(friend_id=data['friendId']).count()
     if isEx == 0:
-	ret["status"] = False
-    	ret["code"] = -4002
-    	ret["msg"] = 'id不存在'
-    	ret['data'] = []
+        ret["status"] = False
+        ret["code"] = -4002
+        ret["msg"] = 'id不存在'
+        ret['data'] = []
         return HttpResponse(json.dumps(ret))
     if data['typeId'] == '':
         #如果类型id为空，说明是新增的类型，先添加进类型表
