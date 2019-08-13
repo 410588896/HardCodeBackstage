@@ -11,7 +11,7 @@ from django.db.models import Q
 
 from adminManage import models
 
-from utils import *
+from adminManage.utils import *
 
 import json
 import time
