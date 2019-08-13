@@ -11,7 +11,7 @@ from django.db import connection
 
 import time
 
-from utils import *
+from adminManage.utils import *
 
 import json
 
