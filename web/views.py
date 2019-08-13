@@ -21,10 +21,10 @@ def get_about_me(request):
     if isEx == 0:
         retdata = dict()
         retdata['html'] = ''
-    	ret["status"] = True
-    	ret["code"] = 0
-    	ret["msg"] = '查询成功'
-    	ret['data'] = retdata
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '查询成功'
+        ret['data'] = retdata
         return HttpResponse(json.dumps(ret))
        
     if isEx != 0:
@@ -37,10 +37,10 @@ def get_about_me(request):
         
         retdata['md'] = config.md
         retdata['type'] = config.type
-    	ret["status"] = True
-    	ret["code"] = 0
-    	ret["msg"] = '查询成功'
-    	ret['data'] = retdata
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '查询成功'
+        ret['data'] = retdata
         return HttpResponse(json.dumps(ret))
         
 def get_resume(request):
@@ -49,10 +49,10 @@ def get_resume(request):
     if isEx == 0:
         retdata = dict()
         retdata['html'] = ''
-    	ret["status"] = True
-    	ret["code"] = 0
-    	ret["msg"] = '查询成功'
-    	ret['data'] = retdata
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '查询成功'
+        ret['data'] = retdata
         return HttpResponse(json.dumps(ret))
        
     if isEx != 0:
@@ -65,10 +65,10 @@ def get_resume(request):
         
         retdata['md'] = config.md
         retdata['type'] = config.type
-    	ret["status"] = True
-    	ret["code"] = 0
-    	ret["msg"] = '查询成功'
-    	ret['data'] = retdata
+        ret["status"] = True
+        ret["code"] = 0
+        ret["msg"] = '查询成功'
+        ret['data'] = retdata
         return HttpResponse(json.dumps(ret))
 
 def get_blog_info(request):
